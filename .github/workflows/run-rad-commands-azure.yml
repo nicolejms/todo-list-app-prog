@@ -259,24 +259,11 @@ jobs:
               exit 1
             fi
           }
-          # Pin every Kubernetes recipe the pack actually references. The set is
-          # discovered from the pack so a kube recipe added upstream cannot leave a
-          # mutable ':latest' tag behind and trip the guard below.
-          kube_recipes="$(awk '
-            match($0, /\047Radius\.[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\047:/) {
-              rt = substr($0, RSTART + 1, RLENGTH - 3)
-            }
-            match($0, /kube-recipes\/[a-z0-9._-]+:latest/) {
-              artifact = substr($0, RSTART, RLENGTH)
-              sub(/kube-recipes\//, "", artifact)
-              sub(/:latest/, "", artifact)
-              if (rt != "") print rt, artifact
-            }
-          ' "$ENV_BICEP" | sort -u)"
-          while read -r resource_type artifact; do
-            [ -n "${artifact}" ] || continue
-            pin_kube_recipe "${resource_type}" "${artifact}"
-          done <<< "${kube_recipes}"
+          pin_kube_recipe Radius.Compute/containers containers
+          pin_kube_recipe Radius.Compute/containerImages containerimages
+          pin_kube_recipe Radius.Compute/persistentVolumes persistentvolumes
+          pin_kube_recipe Radius.Compute/routes routes
+          pin_kube_recipe Radius.Security/secrets secrets
           if grep -Eq 'ghcr\.io/radius-project/kube-recipes/[^'"'"']+:latest' "$ENV_BICEP"; then
             echo "ERROR: the Azure recipe pack still contains a mutable kube recipe tag." >&2
             exit 1
